@@ -1,6 +1,8 @@
 package com.chess.game;
 
+import com.chess.controller.GameFactory;
 import com.chess.enums.Color;
+import com.chess.enums.GameStatus;
 import com.chess.enums.pieceType;
 import com.chess.model.*;
 
@@ -24,6 +26,8 @@ public class Game {
         if(currentTurn==Color.White) currentTurn = Color.Black;
         else currentTurn = Color.White;
     }
+
+    public Board getBoard(){ return board; }
 
     public boolean makeMove(Move move){
         Piece piece = board.getPieceByPosition(move.getFrom());
@@ -59,6 +63,18 @@ public class Game {
 
         return true;
     }
+    public void reset() {
+        this.board = new Board();
+        GameFactory.setUpInitialPosition(this.board);
+
+        this.moveHistory.clear();
+        this.currentTurn = Color.White;
+
+    }
+
+    public Color getCurrentTurn() {
+        return currentTurn;
+    }
 
     public List<Move> getLegalMoves(Position pos){
         int row = pos.getRow();
@@ -79,7 +95,7 @@ public class Game {
     }
 
     public Move getLastMove(){
-        return moveHistory.getLast();
+        return moveHistory.isEmpty()?null:moveHistory.getLast();
     }
 
     public List<Move> getAllLegalMoves(Color color){
@@ -118,7 +134,6 @@ public class Game {
     public boolean isKingInCheck(Color color){
 
         Position kingPosition = board.findKing(color);
-
         return isSquareUnderAttack(kingPosition, color);
     }
 
@@ -239,7 +254,21 @@ public class Game {
 
     public boolean isGameOver(){
         return isCheckmate(Color.White) || isCheckmate(Color.Black) ||
-                isStalemate(Color.Black) || isStalemate(Color.White);
+                isStalemate(Color.Black) || isStalemate(Color.White) || isDraw(Color.White)
+                || isDraw(Color.Black);
+    }
+
+    public GameStatus getGameStatus(){
+        if(isDraw(Color.White) || isDraw(Color.Black))
+            return GameStatus.DRAW;
+
+        if(isStalemate(Color.White) || isStalemate(Color.Black))
+            return GameStatus.STALEMATE;
+
+        if(isCheckmate(Color.Black) || isCheckmate(Color.Black))
+            return GameStatus.CHECKMATE;
+
+        return GameStatus.ONGOING;
     }
 
 }

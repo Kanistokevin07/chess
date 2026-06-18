@@ -36,7 +36,7 @@ public class Board {
         for(int i=0; i<8; i++){
             for(int j=0; j<8; j++){
                 Piece piece = getPiece(i,j);
-                if(piece.getType()==pieceType.King && piece.getColor()==color){
+                if(piece!=null && piece.getType()==pieceType.King && piece.getColor()==color){
                     return new Position(i,j);
                 }
             }
