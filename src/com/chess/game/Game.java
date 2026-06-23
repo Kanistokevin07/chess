@@ -3,6 +3,7 @@ package com.chess.game;
 import com.chess.controller.GameFactory;
 import com.chess.enums.Color;
 import com.chess.enums.GameStatus;
+import com.chess.enums.moveType;
 import com.chess.enums.pieceType;
 import com.chess.model.*;
 
@@ -58,18 +59,39 @@ public class Game {
             halfMoveClock++;
 
         piece.setHasMoved(true);
+
+        switch(move.getType()){
+            case Promotion:
+                move.getPromotedPiece().setHasMoved(true);
+            case Castle_KingSide:
+
+                int row = move.getFrom().getRow();
+                Piece rook = board.getPiece(row, 5);
+                rook.setHasMoved(true);
+
+                break;
+            case Castle_QueenSide:
+
+                int row1 = move.getFrom().getRow();
+                Piece rook1 = board.getPiece(row1, 3);
+                rook1.setHasMoved(true);
+
+                break;
+        }
+
+
         moveHistory.add(move);
         switchTurn();
 
         return true;
     }
+
     public void reset() {
         this.board = new Board();
         GameFactory.setUpInitialPosition(this.board);
 
         this.moveHistory.clear();
         this.currentTurn = Color.White;
-
     }
 
     public Color getCurrentTurn() {
@@ -85,9 +107,12 @@ public class Game {
         if(piece==null) return legalMoves;
 
         for(Move m: piece.getPsuedoLegalMoves(pos, board, this)){
+            System.out.println("Testing " + m);
             board.applyMove(m);
-            if(!isKingInCheck(piece.getColor()))
+            if(!isKingInCheck(piece.getColor())) {
+                System.out.println("LEGAL " + m);
                 legalMoves.add(m);
+            }
             board.undoMove(m);
         }
 
@@ -120,8 +145,8 @@ public class Game {
             for(int j=0; j<8; j++){
                 Piece target = board.getPiece(i,j);
                 if(target!=null && target.getColor()!=color){
-                    for(Move m: target.getPsuedoLegalMoves(new Position(i,j), board, this)){
-                        if(m.getTo().equals(pos)){
+                    for(Position attacked: target.getAttackedSquares(new Position(i,j), board, this)){
+                        if(attacked.equals(pos)){
                             return true;
                         }
                     }
@@ -265,8 +290,10 @@ public class Game {
         if(isStalemate(Color.White) || isStalemate(Color.Black))
             return GameStatus.STALEMATE;
 
-        if(isCheckmate(Color.Black) || isCheckmate(Color.Black))
+        if(isCheckmate(Color.White) || isCheckmate(Color.Black)) {
+            System.out.println("checkmate");
             return GameStatus.CHECKMATE;
+        }
 
         return GameStatus.ONGOING;
     }

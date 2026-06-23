@@ -52,7 +52,6 @@ public class Board {
                 break;
             case Promotion:
                 setPiece(m.getTo(), m.getPromotedPiece());
-                m.getPromotedPiece().setHasMoved(true);
                 break;
             case Castle_KingSide:
                 setPiece(m.getTo(), m.getMovedPiece());
@@ -62,7 +61,6 @@ public class Board {
                 setPiece(new Position(row, 5), rook);
                 setPiece(new Position(row, 7), null);
 
-                rook.setHasMoved(true);
                 break;
             case Castle_QueenSide:
                 setPiece(m.getTo(), m.getMovedPiece());
@@ -72,7 +70,6 @@ public class Board {
                 setPiece(new Position(row1, 3), rook1);
                 setPiece(new Position(row1, 0), null);
 
-                rook1.setHasMoved(true);
                 break;
             case En_Passant:
                 setPiece(m.getTo(), movedPiece);
@@ -86,10 +83,8 @@ public class Board {
                 break;
         }
 
-
-
         setPiece(m.getFrom(), null);
-        movedPiece.setHasMoved(true);
+
     }
 
     public void undoMove(Move m){

@@ -66,4 +66,25 @@ public class Move {
 
     public Piece getPromotedPiece(){ return promotedPiece; }
 
+    @Override
+    public String toString() {
+
+        String fromStr = posToString(from);
+        String toStr = posToString(to);
+
+        String captured = (capturedPiece == null)
+                ? "none"
+                : capturedPiece.getType().toString().toLowerCase();
+
+        return fromStr + " → " + toStr +
+                " | Captured: " + captured +
+                " | Type: " + type;
+    }
+
+    private String posToString(Position p) {
+        char file = (char) ('a' + p.getCol());
+        int rank = 8 - p.getRow();
+        return "" + file + rank;
+    }
+
 }

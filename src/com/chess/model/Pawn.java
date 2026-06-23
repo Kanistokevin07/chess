@@ -60,23 +60,56 @@ public class Pawn extends Piece {
 
         if(promotionRank){
 
-            Move m1 = new Move(moveType.Promotion, pos, onePos, this, null, new Queen(color));
-            Move m2 = new Move(moveType.Promotion, pos, leftPos, this, leftTarget, new Queen(color));
-            Move m3 = new Move(moveType.Promotion, pos, rightPos, this, rightTarget, new Queen(color));
+            if(board.isInsideBoard(nextRow, col) && oneMove == null) {
+                Move m1 = new Move(moveType.Promotion, pos, onePos, this, null, new Queen(color));
+                Move m2 = new Move(moveType.Promotion, pos, onePos, this, null, new Rook(color));
+                Move m3 = new Move(moveType.Promotion, pos, onePos, this, null, new Knight(color));
+                Move m4 = new Move(moveType.Promotion, pos, onePos, this, null, new Bishop(color));
 
-            m1.setOriginalPawn(this);
-            m2.setOriginalPawn(this);
-            m3.setOriginalPawn(this);
+                m1.setOriginalPawn(this);
+                m2.setOriginalPawn(this);
+                m3.setOriginalPawn(this);
+                m4.setOriginalPawn(this);
 
-            if(board.isInsideBoard(nextRow, col) && oneMove == null)
                 moves.add(m1);
-
-            if(board.isInsideBoard(nextRow, leftCol) && leftTarget!=null && leftTarget.getColor()!=color)
                 moves.add(m2);
-
-            if(board.isInsideBoard(nextRow, rightCol) && rightTarget!=null && rightTarget.getColor()!=color)
                 moves.add(m3);
+                moves.add(m4);
+            }
 
+            if(board.isInsideBoard(nextRow, leftCol) && leftTarget!=null && leftTarget.getColor()!=color) {
+                Move m1 = new Move(moveType.Promotion, pos, leftPos, this, leftTarget, new Queen(color));
+                Move m2 = new Move(moveType.Promotion, pos, leftPos, this, leftTarget, new Rook(color));
+                Move m3 = new Move(moveType.Promotion, pos, leftPos, this, leftTarget, new Knight(color));
+                Move m4 = new Move(moveType.Promotion, pos, leftPos, this, leftTarget, new Bishop(color));
+
+                m1.setOriginalPawn(this);
+                m2.setOriginalPawn(this);
+                m3.setOriginalPawn(this);
+                m4.setOriginalPawn(this);
+
+                moves.add(m1);
+                moves.add(m2);
+                moves.add(m3);
+                moves.add(m4);
+            }
+
+            if(board.isInsideBoard(nextRow, rightCol) && rightTarget!=null && rightTarget.getColor()!=color ){
+                Move m1 = new Move(moveType.Promotion, pos, rightPos, this, rightTarget, new Queen(color));
+                Move m2 = new Move(moveType.Promotion, pos, rightPos, this, rightTarget, new Bishop(color));
+                Move m3 = new Move(moveType.Promotion, pos, rightPos, this, rightTarget, new Rook(color));
+                Move m4 = new Move(moveType.Promotion, pos, rightPos, this, rightTarget, new Knight(color));
+
+                m1.setOriginalPawn(this);
+                m2.setOriginalPawn(this);
+                m3.setOriginalPawn(this);
+                m4.setOriginalPawn(this);
+
+                moves.add(m1);
+                moves.add(m2);
+                moves.add(m3);
+                moves.add(m4);
+            }
 
         }
 
@@ -103,9 +136,11 @@ public class Pawn extends Piece {
         }
 
         //enpassant
+
         Move lastMove = game.getLastMove();
 
-        if (lastMove != null && lastMove.getMovedPiece() instanceof Pawn) {
+        if (lastMove != null && lastMove.getMovedPiece().getColor()!=this.color
+         && lastMove.getMovedPiece() instanceof Pawn) {
 
             int lastFromRow = lastMove.getFrom().getRow();
             int lastToRow = lastMove.getTo().getRow();
@@ -155,9 +190,27 @@ public class Pawn extends Piece {
             }
         }
 
-
-
-
         return moves;
+    }
+
+    @Override
+    public List<Position> getAttackedSquares(Position pos, Board board, Game game){
+        List<Position> attacked = new ArrayList<>();
+
+        int dir = (color == Color.White) ? -1 : 1;
+
+        int row = pos.getRow();
+        int col = pos.getCol();
+
+        Position left = new Position(row + dir, col - 1);
+        Position right = new Position(row + dir, col + 1);
+
+        if(board.isInsideBoard(left.getRow(), left.getCol()))
+            attacked.add(left);
+
+        if(board.isInsideBoard(right.getRow(), right.getCol()))
+            attacked.add(right);
+
+        return attacked;
     }
 }

@@ -1,6 +1,7 @@
 package com.chess.gui;
 
 import com.chess.enums.GameStatus;
+import com.chess.enums.moveType;
 import com.chess.game.Game;
 import com.chess.gui.listener.SquareClickListener;
 import com.chess.model.Move;
@@ -8,6 +9,7 @@ import com.chess.model.Piece;
 import com.chess.enums.pieceType;
 import com.chess.enums.Color;
 import com.chess.model.Position;
+import com.chess.gui.dialog.PromotionDialog;
 
 import javax.swing.*;
 import java.awt.*;
@@ -60,23 +62,56 @@ public class ChessBoardPanel extends JPanel implements SquareClickListener {
 
             highlightedMoves = game.getLegalMoves(selected);
 
+            for(Move m: highlightedMoves)
+                System.out.println(m);
+
             renderHighlights();
 
             return;
         }
 
         // CASE 2: second click → try move
+        List<Move> candidates = new ArrayList<>();
         Move chosen = null;
 
-        for (Move m : highlightedMoves) {
-            if (m.getTo().equals(clicked)) {
-                chosen = m;
-                break;
+        for(Move m : highlightedMoves){
+            if(m.getTo().equals(clicked)){
+                candidates.add(m);
             }
         }
 
-        if (chosen != null) {
+        if(candidates.isEmpty()){
+
+            resetHighlights();
+            selected = null;
+            highlightedMoves.clear();
+            return;
+        }
+
+        if (candidates.size() == 1) {
+            chosen = candidates.get(0);
             game.makeMove(chosen);
+        }
+        else if(candidates.get(0).getType()
+                == moveType.Promotion){
+
+            pieceType selectedType =
+                    PromotionDialog.showPromotionDialog(this,
+                            candidates.get(0).getMovedPiece().getColor());
+
+            for(Move m : candidates){
+                if(m.getPromotedPiece()
+                        .getType() == selectedType){
+
+                    chosen = m;
+                    break;
+                }
+            }
+
+            if(chosen != null){
+                game.makeMove(chosen);
+            }
+
         }
 
         System.out.println("chosen: " + chosen);
@@ -90,12 +125,14 @@ public class ChessBoardPanel extends JPanel implements SquareClickListener {
 
         if (status != GameStatus.ONGOING) {
             if(status == GameStatus.CHECKMATE) {
-                String msg = game.getCurrentTurn()==Color.White?"White":"Black";
+                System.out.println("Checkmate");
+                String msg = game.getCurrentTurn()==Color.White?"Black":"White";
                 JOptionPane.showMessageDialog(this, status.toString() + " by " +
                                   msg
                         );
             }
             else{
+                System.out.println(status.toString());
                 JOptionPane.showMessageDialog(this, status.toString());
             }
 

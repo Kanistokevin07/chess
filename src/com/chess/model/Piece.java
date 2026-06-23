@@ -4,6 +4,7 @@ import com.chess.enums.moveType;
 import com.chess.enums.pieceType;
 import com.chess.game.Game;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public abstract class Piece {
@@ -30,6 +31,16 @@ public abstract class Piece {
     public abstract pieceType getType();
 
     public abstract List<Move> getPsuedoLegalMoves(Position pos, Board board, Game game);
+
+    public List<Position> getAttackedSquares(Position pos, Board board, Game game){
+        List<Position> attacked = new ArrayList<>();
+
+        for(Move m: getPsuedoLegalMoves(pos, board, game)){
+            attacked.add(m.getTo());
+        }
+
+        return attacked;
+    }
 
     protected void addSlidingMoves(Board board, Position pos, List<Move> moves, int[][] directions){
         int row = pos.getRow();

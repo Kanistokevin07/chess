@@ -52,12 +52,15 @@ public class King extends Piece{
 
         }
 
-        if(!this.hasMoved){
+        Piece rook = board.getPiece(row,7);
+
+        if(!this.getHasMoved()){
 
             //king side
-            Piece rook = board.getPiece(row,7);
+            rook = board.getPiece(row,7);
 
-            if(rook != null && !rook.hasMoved && rook.getColor() == this.color && rook.getType() == pieceType.Rook){
+            if(rook != null && !rook.hasMoved &&
+                     rook.getColor() == this.color && rook.getType() == pieceType.Rook){
                 Position f1 = new Position(row,5);
                 Position g1 = new Position(row,6);
 
@@ -68,10 +71,14 @@ public class King extends Piece{
                 }
             }
 
+            System.out.println("Adding kingside castle");
+            System.out.println("Adding queenside castle");
+
             //queenside
             rook = board.getPiece(row,0);
 
-            if(rook != null && !rook.hasMoved && rook.getColor() == this.color && rook.getType() == pieceType.Rook){
+            if(rook != null && !rook.hasMoved &&
+                     rook.getColor() == this.color && rook.getType() == pieceType.Rook){
                 Position b8 = new Position(row,1);
                 Position c8 = new Position(row,2);
                 Position d8 = new Position(row,3);
@@ -86,5 +93,29 @@ public class King extends Piece{
             }
         }
         return moves;
+    }
+
+    @Override
+    public List<Position> getAttackedSquares(Position pos, Board board, Game game){
+        List<Position> attacked = new ArrayList<>();
+
+        int row = pos.getRow();
+        int col = pos.getCol();
+
+        int[][] directions = {
+                {-1, -1}, {-1, 0}, {-1, 1},
+                { 0, -1},          { 0, 1},
+                { 1, -1}, { 1, 0}, { 1, 1}
+        };
+
+        for (int[] dir : directions) {
+            int newRow = row + dir[0];
+            int newCol = col + dir[1];
+
+            if (board.isInsideBoard(newRow, newCol)) {
+                attacked.add(new Position(newRow, newCol));
+            }
+        }
+        return attacked;
     }
 }
