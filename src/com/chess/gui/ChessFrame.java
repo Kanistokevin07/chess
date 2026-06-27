@@ -1,6 +1,7 @@
 package com.chess.gui;
 
 import com.chess.controller.GameFactory;
+import com.chess.enums.GameMode;
 import com.chess.game.Game;
 
 import javax.swing.*;
@@ -13,30 +14,66 @@ public class ChessFrame extends JFrame {
 
     public ChessFrame() {
 
-        setTitle("Chess Game");
-        setSize(750, 750);
+        setTitle("Java Chess Engine");
+        setSize(750, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
+        showMainMenu();
+    }
+
+    private void showMainMenu() {
+
+        JPanel menu = new JPanel(new GridBagLayout());
+
+        JPanel buttons = new JPanel(new GridLayout(3, 1, 10, 15));
+
+        JButton pvp = new JButton("Player vs Player");
+        JButton pvai = new JButton("Player vs AI");
+        JButton exit = new JButton("Exit");
+
+        buttons.add(pvp);
+        buttons.add(pvai);
+        buttons.add(exit);
+
+        menu.add(buttons);
+
+        setContentPane(menu);
+
+        pvp.addActionListener(e ->
+                startGame(GameMode.PLAYER_VS_PLAYER));
+
+        pvai.addActionListener(e ->
+                startGame(GameMode.PLAYER_VS_AI));
+
+        exit.addActionListener(e -> System.exit(0));
+
+        revalidate();
+        repaint();
+    }
+
+    private void startGame(GameMode mode) {
+
         game = GameFactory.createGame();
-        board = new ChessBoardPanel(game);
+        board = new ChessBoardPanel(game, mode);
 
-        add(board);
+        JButton newGame = new JButton("Main Menu");
+        newGame.addActionListener(e -> showMainMenu());
 
-        JButton newGame = new JButton("New Game");
+        JPanel gamePanel = new JPanel(new BorderLayout());
 
-        newGame.addActionListener(e -> {
-            game.reset();
-            board.renderPieces();
-            board.resetHighlights();
-        });
+        gamePanel.add(board, BorderLayout.CENTER);
+        gamePanel.add(newGame, BorderLayout.SOUTH);
 
-        add(newGame, BorderLayout.SOUTH);
+        setContentPane(gamePanel);
+
+        revalidate();
+        repaint();
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            new ChessFrame().setVisible(true);
-        });
+
+        SwingUtilities.invokeLater(() ->
+                new ChessFrame().setVisible(true));
     }
 }

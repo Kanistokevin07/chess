@@ -7,7 +7,9 @@ import com.chess.enums.moveType;
 import com.chess.enums.pieceType;
 import com.chess.model.*;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 
 public class Game {
@@ -15,6 +17,19 @@ public class Game {
     Color currentTurn;
     List<Move> moveHistory;
     private int halfMoveClock;
+
+    Deque<GameState> undoStack = new ArrayDeque<>();
+    Deque<GameState> redoStack = new ArrayDeque<>();
+
+    private Piece whiteKing;
+    private Piece blackKing;
+
+    private Piece whiteKingsideRook;
+    private Piece whiteQueensideRook;
+
+    private Piece blackKingsideRook;
+    private Piece blackQueensideRook;
+
 
     public Game(Board board){
         moveHistory = new ArrayList<>();
@@ -26,6 +41,19 @@ public class Game {
     public void switchTurn(){
         if(currentTurn==Color.White) currentTurn = Color.Black;
         else currentTurn = Color.White;
+    }
+
+
+    public void initPieceReferences() {
+
+        whiteKing = board.getPiece(7, 4);
+        blackKing = board.getPiece(0, 4);
+
+        whiteKingsideRook = board.getPiece(7, 7);
+        whiteQueensideRook = board.getPiece(7, 0);
+
+        blackKingsideRook = board.getPiece(0, 7);
+        blackQueensideRook = board.getPiece(0, 0);
     }
 
     public Board getBoard(){ return board; }
@@ -51,6 +79,9 @@ public class Game {
         if(!found)
             return false;
 
+        undoStack.push(createGameState());
+        redoStack.clear();
+
         board.applyMove(move);
 
         if(piece.getType() == pieceType.Pawn || move.getCapturedPiece()!=null)
@@ -63,6 +94,8 @@ public class Game {
         switch(move.getType()){
             case Promotion:
                 move.getPromotedPiece().setHasMoved(true);
+                break;
+
             case Castle_KingSide:
 
                 int row = move.getFrom().getRow();
@@ -117,6 +150,114 @@ public class Game {
         }
 
         return legalMoves;
+    }
+
+    public GameState createGameState() {
+
+        return new GameState(
+                currentTurn,
+                halfMoveClock,
+                getGameStatus(),
+
+                whiteKing.getHasMoved(),
+                whiteKingsideRook.getHasMoved(),
+                whiteQueensideRook.getHasMoved(),
+
+                blackKing.getHasMoved(),
+                blackKingsideRook.getHasMoved(),
+                blackQueensideRook.getHasMoved()
+        );
+    }
+
+    public void undo() {
+
+        if (undoStack.isEmpty())
+            return;
+
+        redoStack.push(createGameState());
+        GameState prev = undoStack.pop();
+        restore(prev);
+
+        if (!moveHistory.isEmpty()){
+            board.undoMove(moveHistory.getLast());
+            moveHistory.removeLast();
+        }
+
+    }
+
+    public void redo() {
+
+        if (redoStack.isEmpty())
+            return;
+
+        undoStack.push(createGameState());
+
+        GameState next = redoStack.pop();
+        restore(next);
+
+        Move lastUndone = moveHistory.getLast();
+        board.applyMove(lastUndone);
+
+        moveHistory.add(lastUndone);
+    }
+
+    public GameState applySearchMove(Move move) {
+
+        GameState state = createGameState();
+        Piece piece = board.getPieceByPosition(move.getFrom());
+
+        board.applyMove(move);
+
+        // Update halfmove clock
+        if (piece.getType() == pieceType.Pawn || move.getCapturedPiece() != null)
+            halfMoveClock = 0;
+        else
+            halfMoveClock++;
+
+        // Update moved flags
+        piece.setHasMoved(true);
+
+        switch (move.getType()) {
+
+            case Promotion:
+                move.getPromotedPiece().setHasMoved(true);
+                break;
+
+            case Castle_KingSide:
+                board.getPiece(move.getFrom().getRow(), 5).setHasMoved(true);
+                break;
+
+            case Castle_QueenSide:
+                board.getPiece(move.getFrom().getRow(), 3).setHasMoved(true);
+                break;
+        }
+
+        moveHistory.add(move);
+        switchTurn();
+
+        return state;
+    }
+
+    public void undoSearchMove(GameState state) {
+
+        Move lastMove = moveHistory.removeLast();
+        board.undoMove(lastMove);
+        restore(state);
+    }
+
+    public void restore(GameState state) {
+
+        currentTurn = state.getCurrentTurn();
+        halfMoveClock = state.getHalfMoveClock();
+
+        // restore flags
+        whiteKing.setHasMoved(state.isWhiteKingMoved());
+        whiteKingsideRook.setHasMoved(state.isWhiteKingsideRookMoved());
+        whiteQueensideRook.setHasMoved(state.isWhiteQueensideRookMoved());
+
+        blackKing.setHasMoved(state.isBlackKingMoved());
+        blackKingsideRook.setHasMoved(state.isBlackKingsideRookMoved());
+        blackQueensideRook.setHasMoved(state.isBlackQueensideRookMoved());
     }
 
     public Move getLastMove(){
@@ -291,7 +432,6 @@ public class Game {
             return GameStatus.STALEMATE;
 
         if(isCheckmate(Color.White) || isCheckmate(Color.Black)) {
-            System.out.println("checkmate");
             return GameStatus.CHECKMATE;
         }
 

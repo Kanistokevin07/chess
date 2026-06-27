@@ -1,13 +1,12 @@
 package com.chess.gui;
 
-import com.chess.enums.GameStatus;
-import com.chess.enums.moveType;
+import com.chess.ai.AIPlayer;
+import com.chess.enums.*;
+import com.chess.enums.Color;
 import com.chess.game.Game;
 import com.chess.gui.listener.SquareClickListener;
 import com.chess.model.Move;
 import com.chess.model.Piece;
-import com.chess.enums.pieceType;
-import com.chess.enums.Color;
 import com.chess.model.Position;
 import com.chess.gui.dialog.PromotionDialog;
 
@@ -22,13 +21,26 @@ public class ChessBoardPanel extends JPanel implements SquareClickListener {
 
     private Game game;
     private SquarePanel[][] squares = new SquarePanel[8][8];
+    private AIPlayer aiPlayer;
+    private GameMode gameMode;
 
     private Position selected;
     private List<Move> highlightedMoves = new ArrayList<>();
 
-    public ChessBoardPanel(Game game) {
+    private JButton undoBtn;
+    private JButton redoBtn;
+
+    public ChessBoardPanel(Game game, GameMode gameMode) {
         this.game = game;
-        setLayout(new GridLayout(SIZE, SIZE));
+        this.gameMode = gameMode;
+
+        if (gameMode == GameMode.PLAYER_VS_AI) {
+            aiPlayer = new AIPlayer(Color.Black, 3);
+        }
+
+        setLayout(new BorderLayout());
+
+        JPanel boardPanel = new JPanel(new GridLayout(SIZE, SIZE));
         boolean white = true;
 
         for (int row = 0; row < SIZE; row++) {
@@ -37,11 +49,26 @@ public class ChessBoardPanel extends JPanel implements SquareClickListener {
                 SquarePanel square = new SquarePanel(white, row, col, this);
                 squares[row][col] = square;
 
-                add(square);
+                boardPanel.add(square);
                 white = !white;
             }
             white = !white;
         }
+
+        JPanel controlPanel = new JPanel(new FlowLayout());
+
+        undoBtn = new JButton("Undo");
+        redoBtn = new JButton("Redo");
+
+        controlPanel.add(undoBtn);
+        controlPanel.add(redoBtn);
+
+        add(boardPanel, BorderLayout.CENTER);
+        add(controlPanel, BorderLayout.SOUTH);
+
+        undoBtn.addActionListener(e -> onUndo());
+        redoBtn.addActionListener(e -> onRedo());
+
         renderPieces();
     }
 
@@ -74,68 +101,90 @@ public class ChessBoardPanel extends JPanel implements SquareClickListener {
         List<Move> candidates = new ArrayList<>();
         Move chosen = null;
 
-        for(Move m : highlightedMoves){
-            if(m.getTo().equals(clicked)){
+        for (Move m : highlightedMoves) {
+            if (m.getTo().equals(clicked)) {
                 candidates.add(m);
             }
         }
 
-        if(candidates.isEmpty()){
-
+        if (candidates.isEmpty()) {
             resetHighlights();
             selected = null;
             highlightedMoves.clear();
             return;
         }
 
+        // Normal move
         if (candidates.size() == 1) {
             chosen = candidates.get(0);
-            game.makeMove(chosen);
         }
-        else if(candidates.get(0).getType()
-                == moveType.Promotion){
+
+        // Promotion
+        else if (candidates.get(0).getType() == moveType.Promotion) {
 
             pieceType selectedType =
-                    PromotionDialog.showPromotionDialog(this,
+                    PromotionDialog.showPromotionDialog(
+                            this,
                             candidates.get(0).getMovedPiece().getColor());
 
-            for(Move m : candidates){
-                if(m.getPromotedPiece()
-                        .getType() == selectedType){
-
+            for (Move m : candidates) {
+                if (m.getPromotedPiece().getType() == selectedType) {
                     chosen = m;
                     break;
                 }
             }
-
-            if(chosen != null){
-                game.makeMove(chosen);
-            }
-
         }
 
-        System.out.println("chosen: " + chosen);
+// ---------------- Execute Human Move ----------------
 
-        resetHighlights();
-        selected = null;
-        highlightedMoves.clear();
-        renderPieces();
+        if (chosen != null && game.makeMove(chosen)) {
 
-        GameStatus status = game.getGameStatus();
+            // Show player's move immediately
+            renderPieces();
 
-        if (status != GameStatus.ONGOING) {
-            if(status == GameStatus.CHECKMATE) {
-                System.out.println("Checkmate");
-                String msg = game.getCurrentTurn()==Color.White?"Black":"White";
-                JOptionPane.showMessageDialog(this, status.toString() + " by " +
-                                  msg
-                        );
+            // Clear UI state
+            resetHighlights();
+            selected = null;
+            highlightedMoves.clear();
+
+            // Check whether game already ended
+            GameStatus status = game.getGameStatus();
+
+            if (gameMode == GameMode.PLAYER_VS_AI && status == GameStatus.ONGOING &&
+                    game.getCurrentTurn() == Color.Black) {
+
+                Move aiMove = aiPlayer.chooseMove(game);
+
+                if (aiMove != null) {
+                    game.makeMove(aiMove);
+                    renderPieces();
+                }
+
+                status = game.getGameStatus();
             }
-            else{
-                System.out.println(status.toString());
-                JOptionPane.showMessageDialog(this, status.toString());
-            }
 
+            if (status != GameStatus.ONGOING) {
+
+                if (status == GameStatus.CHECKMATE) {
+
+                    String winner =
+                            game.getCurrentTurn() == Color.White
+                                    ? "Black"
+                                    : "White";
+
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "CHECKMATE\nWinner : " + winner
+                    );
+
+                } else {
+
+                    JOptionPane.showMessageDialog(
+                            this,
+                            status.toString()
+                    );
+                }
+            }
         }
     }
 
@@ -159,6 +208,29 @@ public class ChessBoardPanel extends JPanel implements SquareClickListener {
                 squares[r][c].setHighlightRed(true);
             }
         }
+    }
+
+    private void onUndo() {
+        if(gameMode == GameMode.PLAYER_VS_AI){
+            game.undo();
+        }
+        game.undo();
+
+        selected = null;
+        highlightedMoves.clear();
+
+        resetHighlights();
+        renderPieces();
+    }
+
+    private void onRedo() {
+        game.redo();
+
+        selected = null;
+        highlightedMoves.clear();
+
+        resetHighlights();
+        renderPieces();
     }
 
     public void resetHighlights() {

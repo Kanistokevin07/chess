@@ -8,7 +8,10 @@ public class GameFactory {
     public static Game createGame(){
         Board board = new Board();
         setUpInitialPosition(board);
-        return new Game(board);
+        Game game = new Game(board);
+        game.initPieceReferences();
+
+        return game;
     }
 
     public static void setUpInitialPosition(Board board) {
