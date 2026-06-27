@@ -17,7 +17,7 @@ public class Evaluator {
                 if(piece == null)
                     continue;
 
-                int value = getPieceValue(piece);
+                int value = evaluatePiece(piece, row, col);
 
                 if(piece.getColor() == Color.White)
                     score += value;
@@ -38,5 +38,28 @@ public class Evaluator {
             case Queen -> 900;
             case King -> 20000;
         };
+    }
+
+    private static int evaluatePiece(Piece piece, int row, int col) {
+
+        return getPieceValue(piece) +
+                getPieceSquareValue(piece, row, col);
+    }
+
+    private static int getPieceSquareValue(Piece piece, int row, int col) {
+
+        int[][] table = switch (piece.getType()) {
+            case Pawn   -> PieceSquareTables.PAWN;
+            case Knight -> PieceSquareTables.KNIGHT;
+            case Bishop -> PieceSquareTables.BISHOP;
+            case Rook   -> PieceSquareTables.ROOK;
+            case Queen  -> PieceSquareTables.QUEEN;
+            case King   -> PieceSquareTables.KING;
+        };
+
+        if (piece.getColor() == Color.White)
+            return table[row][col];
+
+        return table[7 - row][col];
     }
 }

@@ -29,7 +29,7 @@ public class AIPlayer {
         for (Move move : game.getAllLegalMoves(aiColor)) {
 
             GameState state = game.applySearchMove(move);
-            int score = minimax.minimax(depth - 1, game, game.getCurrentTurn());
+            int score = minimax.minimax(depth - 1, Integer.MIN_VALUE, Integer.MAX_VALUE, game, game.getCurrentTurn());
 
             game.undoSearchMove(state);
 
