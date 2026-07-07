@@ -297,6 +297,15 @@ public class Game {
         return false;
     }
 
+    public List<Move> getAllCaptureMoves(Color side){
+        List<Move> captures = new ArrayList<>();
+        for (Move m : getAllLegalMoves(side)) {
+            if (m.getCapturedPiece() != null)
+                captures.add(m);
+        }
+        return captures;
+    }
+
     public boolean isKingInCheck(Color color){
 
         Position kingPosition = board.findKing(color);

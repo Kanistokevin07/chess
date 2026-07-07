@@ -14,13 +14,16 @@ import java.util.List;
 
 public class MoveOrdering {
 
-    public static void orderMoves(Game game, List<Move> moves, int depth, Move[][] killerMoves) {
+    public static void orderMoves(Game game, List<Move> moves, int depth, Move[][] killerMoves,
+                                  int[][] historyTable) {
         moves.sort((a, b) -> {
-            return scoreMove(game, b, depth, killerMoves) - scoreMove(game, a, depth, killerMoves);
+            return scoreMove(game, b, depth, killerMoves, historyTable) -
+                    scoreMove(game, a, depth, killerMoves, historyTable);
         });
     }
 
-    private static int scoreMove(Game game, Move move, int depth, Move[][] killerMoves) {
+    private static int scoreMove(Game game, Move move, int depth, Move[][] killerMoves,
+                                 int[][] historyTable) {
 
         int score = 0;
 
@@ -50,6 +53,16 @@ public class MoveOrdering {
                 move.getType() == moveType.Castle_QueenSide) {
             score += 5000;
         }
+
+        // history table scores
+
+        int from = move.getFrom().getRow() * 8 +
+                        move.getFrom().getCol();
+
+        int to = move.getTo().getRow() * 8 +
+                        move.getTo().getCol();
+
+        score += historyTable[from][to];
 
         // 4. Quiet moves (low base)
         score += 10;
