@@ -16,12 +16,38 @@ public class MiniMax {
     private final Evaluator evaluator;
     private Move[][] killerMoves = new Move[100][2];
     private final int[][] historyTable = new int[64][64];
+    private final TranspositionTable tt = new TranspositionTable();
 
     public MiniMax(){
         evaluator = new Evaluator();
     }
 
     public int minimax(int depth, int alpha, int beta, Game game, Color sideToMove){
+
+        long hash = Zobrist.computeHash(game);
+        TTEntry entry = tt.lookup(hash);
+
+        if (entry != null && entry.getDepth() >= depth) {
+            switch (entry.getType()) {
+                case EXACT:
+                    return entry.getScore();
+
+                case LOWER_BOUND:
+                    alpha = Math.max(alpha, entry.getScore());
+                    break;
+
+                case UPPER_BOUND:
+                    beta = Math.min(beta, entry.getScore());
+                    break;
+            }
+
+            if (alpha >= beta)
+                return entry.getScore();
+        }
+
+        int originalAlpha = alpha;
+        int originalBeta = beta;
+
         if(depth ==0 || game.isGameOver()){
 
             GameStatus status = game.getGameStatus();
@@ -42,15 +68,20 @@ public class MiniMax {
 
         if(sideToMove == Color.White){
             int bestScore = Integer.MIN_VALUE;
+            Move bestMove = null;
+
             List<Move> moves = game.getAllLegalMoves(sideToMove);
-            MoveOrdering.orderMoves(game, moves, depth, killerMoves, historyTable);
+            MoveOrdering.orderMoves(game, moves, depth, killerMoves, historyTable, entry);
 
             for(Move m: moves){
                 GameState state = game.applySearchMove(m);
 
                 int score = minimax(depth-1, alpha, beta, game,  Color.Black);
                 game.undoSearchMove(state);
-                bestScore = Math.max(bestScore, score);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = m;
+                }
 
                 alpha = max(alpha, bestScore);
 
@@ -64,20 +95,42 @@ public class MiniMax {
                     break;
                 }
             }
+            EntryType type;
+
+            if (bestScore <= originalAlpha)
+                type = EntryType.UPPER_BOUND;
+            else if (bestScore >= originalBeta)
+                type = EntryType.LOWER_BOUND;
+            else
+                type = EntryType.EXACT;
+
+            tt.store(new TTEntry(
+                    hash,
+                    depth,
+                    bestScore,
+                    bestMove,
+                    type
+            ));
+
+
             return bestScore;
         }
         else{
             int bestScore = Integer.MAX_VALUE;
+            Move bestMove = null;
 
             List<Move> moves = game.getAllLegalMoves(sideToMove);
-            MoveOrdering.orderMoves(game, moves, depth, killerMoves, historyTable);
+            MoveOrdering.orderMoves(game, moves, depth, killerMoves, historyTable, entry);
 
             for(Move m: moves){
                 GameState state = game.applySearchMove(m);
                 int score = minimax(depth-1, alpha, beta, game, Color.White);
 
                 game.undoSearchMove(state);
-                bestScore = min(bestScore, score);
+                if (score < bestScore) {
+                    bestScore = score;
+                    bestMove = m;
+                }
 
                 beta = min(beta, bestScore);
                 if(alpha>=beta) {
@@ -91,6 +144,24 @@ public class MiniMax {
                 }
 
             }
+            EntryType type;
+
+            if (bestScore <= originalAlpha)
+                type = EntryType.UPPER_BOUND;
+            else if (bestScore >= originalBeta)
+                type = EntryType.LOWER_BOUND;
+            else
+                type = EntryType.EXACT;
+
+            tt.store(new TTEntry(
+                    hash,
+                    depth,
+                    bestScore,
+                    bestMove,
+                    type
+            ));
+
+
             return bestScore;
         }
     }
@@ -101,6 +172,8 @@ public class MiniMax {
                            Color sideToMove) {
 
         int standPat = evaluator.evaluate(game);
+        long hash = Zobrist.computeHash(game);
+        TTEntry entry = tt.lookup(hash);
 
         // Beta cutoff
         if(sideToMove == Color.White){
@@ -119,7 +192,7 @@ public class MiniMax {
         }
 
         List<Move> captures = game.getAllCaptureMoves(sideToMove);
-        MoveOrdering.orderMoves(game, captures, 0, killerMoves, historyTable);
+        MoveOrdering.orderMoves(game, captures, 0, killerMoves, historyTable, entry);
 
         if(sideToMove == Color.White){
             int best = standPat;

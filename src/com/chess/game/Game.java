@@ -447,4 +447,28 @@ public class Game {
         return GameStatus.ONGOING;
     }
 
+    public Piece getWhiteKing() {
+        return whiteKing;
+    }
+
+    public Piece getBlackKing() {
+        return blackKing;
+    }
+
+    public Piece getWhiteKingsideRook() {
+        return whiteKingsideRook;
+    }
+
+    public Piece getWhiteQueensideRook() {
+        return whiteQueensideRook;
+    }
+
+    public Piece getBlackKingsideRook() {
+        return blackKingsideRook;
+    }
+
+    public Piece getBlackQueensideRook() {
+        return blackQueensideRook;
+    }
+
 }

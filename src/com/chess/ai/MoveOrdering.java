@@ -15,17 +15,24 @@ import java.util.List;
 public class MoveOrdering {
 
     public static void orderMoves(Game game, List<Move> moves, int depth, Move[][] killerMoves,
-                                  int[][] historyTable) {
+                                  int[][] historyTable,  TTEntry entry) {
         moves.sort((a, b) -> {
-            return scoreMove(game, b, depth, killerMoves, historyTable) -
-                    scoreMove(game, a, depth, killerMoves, historyTable);
+            return scoreMove(game, b, depth, killerMoves, historyTable, entry) -
+                    scoreMove(game, a, depth, killerMoves, historyTable, entry);
         });
     }
 
     private static int scoreMove(Game game, Move move, int depth, Move[][] killerMoves,
-                                 int[][] historyTable) {
+                                 int[][] historyTable, TTEntry entry) {
 
         int score = 0;
+
+        if (entry != null &&
+                entry.getBestMove() != null &&
+                move.equals(entry.getBestMove())) {
+
+            score += 2_000_000;
+        }
 
         if (move.equals(killerMoves[depth][0])) {
             score += 1_000_000;
