@@ -3,9 +3,11 @@ package com.chess.ai;
 import com.chess.enums.Color;
 import com.chess.enums.GameStatus;
 import com.chess.enums.moveType;
+import com.chess.enums.pieceType;
 import com.chess.game.Game;
 import com.chess.game.GameState;
 import com.chess.model.Move;
+import com.chess.model.Piece;
 
 import java.util.List;
 
@@ -48,6 +50,24 @@ public class MiniMax {
         int originalAlpha = alpha;
         int originalBeta = beta;
 
+        if(canDoNullMove(game, sideToMove, depth)){
+
+            game.switchTurn();
+
+            int score = minimax(
+                    depth - 3,
+                    alpha,
+                    beta,
+                    game,
+                    opposite(sideToMove)
+            );
+
+            game.switchTurn();
+
+            if(score >= beta)
+                return beta;
+        }
+
         if(depth ==0 || game.isGameOver()){
 
             GameStatus status = game.getGameStatus();
@@ -73,10 +93,40 @@ public class MiniMax {
             List<Move> moves = game.getAllLegalMoves(sideToMove);
             MoveOrdering.orderMoves(game, moves, depth, killerMoves, historyTable, entry);
 
+            int moveCount = 0;
+
             for(Move m: moves){
+                moveCount++;
                 GameState state = game.applySearchMove(m);
 
-                int score = minimax(depth-1, alpha, beta, game,  Color.Black);
+                int newDepth = depth - 1;
+                if(game.isKingInCheck(Color.Black)){
+                    newDepth++;
+                }
+
+                // Late Move Reduction
+                if (shouldReduce(m, depth, moveCount) && newDepth == depth - 1) {
+                    newDepth--;
+                }
+
+                int score = minimax(
+                        newDepth,
+                        alpha,
+                        beta,
+                        game,
+                        Color.Black
+                );
+
+                // Re-search if reduced move looks promising
+                if (newDepth != depth - 1 && score > alpha) {
+                    score = minimax(
+                            depth - 1,
+                            alpha,
+                            beta,
+                            game,
+                            Color.Black
+                    );
+                }
                 game.undoSearchMove(state);
                 if (score > bestScore) {
                     bestScore = score;
@@ -119,12 +169,42 @@ public class MiniMax {
             int bestScore = Integer.MAX_VALUE;
             Move bestMove = null;
 
+            int moveCount = 0;
+
             List<Move> moves = game.getAllLegalMoves(sideToMove);
             MoveOrdering.orderMoves(game, moves, depth, killerMoves, historyTable, entry);
 
             for(Move m: moves){
+                moveCount++;
                 GameState state = game.applySearchMove(m);
-                int score = minimax(depth-1, alpha, beta, game, Color.White);
+                int newDepth = depth - 1;
+
+                if(game.isKingInCheck(Color.White)){
+                    newDepth++;
+                }
+                if (shouldReduce(m, depth, moveCount) && newDepth == depth - 1) {
+                    newDepth--;
+                }
+
+                int score = minimax(
+                        newDepth,
+                        alpha,
+                        beta,
+                        game,
+                        Color.White
+                );
+
+
+                // Re-search
+                if (newDepth != depth - 1 && score < beta) {
+                    score = minimax(
+                            depth - 1,
+                            alpha,
+                            beta,
+                            game,
+                            Color.White
+                    );
+                }
 
                 game.undoSearchMove(state);
                 if (score < bestScore) {
@@ -242,6 +322,32 @@ public class MiniMax {
         int from = move.getFrom().getRow() * 8 + move.getFrom().getCol();
         int to = move.getTo().getRow() * 8 + move.getTo().getCol();
         historyTable[from][to] += depth * depth;
+    }
+
+    private boolean canDoNullMove(Game game,
+                                  Color color,
+                                  int depth){
+
+        return depth >= 3
+                && !game.isKingInCheck(color)
+                && game.hasNonPawnMaterial(color);
+    }
+
+    private boolean shouldReduce(Move move,
+                                 int depth,
+                                 int moveCount){
+
+        return depth >= 3
+                && moveCount > 3
+                && move.getCapturedPiece() == null
+                && move.getType() != moveType.Promotion;
+    }
+
+    private Color opposite(Color color){
+
+        return color == Color.White ?
+                Color.Black :
+                Color.White;
     }
 
     private void storeKiller(int depth, Move move) {

@@ -471,4 +471,25 @@ public class Game {
         return blackQueensideRook;
     }
 
+    public boolean hasNonPawnMaterial(Color color){
+
+        Piece[][] squares = board.getSquares();
+
+        for(int row = 0; row < 8; row++){
+            for(int col = 0; col < 8; col++){
+
+                Piece piece = squares[row][col];
+                if(piece == null)
+                    continue;
+                if(piece.getColor() != color)
+                    continue;
+                if(piece.getType() != pieceType.Pawn &&
+                        piece.getType() != pieceType.King){
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
 }
