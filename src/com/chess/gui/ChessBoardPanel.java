@@ -14,6 +14,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ChessBoardPanel extends JPanel implements SquareClickListener {
 
@@ -23,6 +25,11 @@ public class ChessBoardPanel extends JPanel implements SquareClickListener {
     private SquarePanel[][] squares = new SquarePanel[8][8];
     private AIPlayer aiPlayer;
     private GameMode gameMode;
+
+    private final ExecutorService aiExecutor =
+            Executors.newSingleThreadExecutor();
+    private boolean aiThinking = false;
+    private JLabel statusLabel;
 
     private Position selected;
     private List<Move> highlightedMoves = new ArrayList<>();
@@ -35,7 +42,7 @@ public class ChessBoardPanel extends JPanel implements SquareClickListener {
         this.gameMode = gameMode;
 
         if (gameMode == GameMode.PLAYER_VS_AI) {
-            aiPlayer = new AIPlayer(Color.Black, 3);
+            aiPlayer = new AIPlayer(Color.Black, 4);
         }
 
         setLayout(new BorderLayout());
@@ -60,6 +67,8 @@ public class ChessBoardPanel extends JPanel implements SquareClickListener {
         undoBtn = new JButton("Undo");
         redoBtn = new JButton("Redo");
 
+        statusLabel = new JLabel("Your turn");
+
         controlPanel.add(undoBtn);
         controlPanel.add(redoBtn);
 
@@ -75,6 +84,8 @@ public class ChessBoardPanel extends JPanel implements SquareClickListener {
     @Override
     public void onSquareClick(int row, int col) {
         System.out.println("Clicked " + row + "," + col);
+        if(aiThinking)
+            return;
 
         Piece piece = game.getBoard().getPiece(row, col);
 
@@ -153,14 +164,34 @@ public class ChessBoardPanel extends JPanel implements SquareClickListener {
             if (gameMode == GameMode.PLAYER_VS_AI && status == GameStatus.ONGOING &&
                     game.getCurrentTurn() == Color.Black) {
 
-                Move aiMove = aiPlayer.chooseMove(game);
+                setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+                updateStatus("AI is thinking...");
 
-                if (aiMove != null) {
-                    game.makeMove(aiMove);
-                    renderPieces();
-                }
+                aiExecutor.submit(() -> {
+                    aiThinking = true;
+                    Move aiMove = aiPlayer.chooseMove(game);
 
-                status = game.getGameStatus();
+                    SwingUtilities.invokeLater(() -> {
+                        if(aiMove != null) {
+                            game.makeMove(aiMove);
+                            renderPieces();
+                            updateStatus("Your turn");
+                        }
+
+                        setCursor(Cursor.getDefaultCursor());
+                        GameStatus aiStatus =
+                                game.getGameStatus();
+
+                        if(aiStatus != GameStatus.ONGOING) {
+                            JOptionPane.showMessageDialog(
+                                    this,
+                                    aiStatus.toString()
+                            );
+                        }
+
+                        aiThinking = false;
+                    });
+                });
             }
 
             if (status != GameStatus.ONGOING) {
@@ -243,6 +274,12 @@ public class ChessBoardPanel extends JPanel implements SquareClickListener {
                 squares[i][j].setHighlightRed(false);
             }
         }
+    }
+
+    private void updateStatus(String text){
+        SwingUtilities.invokeLater(() -> {
+            statusLabel.setText(text);
+        });
     }
 
     public void renderPieces() {
